@@ -1,0 +1,110 @@
+version: "3.9"
+
+services:
+
+  node0:
+    build: .
+    container_name: node0
+    environment:
+      - NODE_ID=0
+      - NODE_PORT=5000
+      - MODE=A
+      - PEERS=[["node1",5001],["node2",5002],["node3",5003],["node4",5004]]
+    ports:
+      - "5000:5000"
+    networks:
+      - consensus_net
+
+  node1:
+    build: .
+    container_name: node1
+    environment:
+      - NODE_ID=1
+      - NODE_PORT=5001
+      - MODE=A
+      - PEERS=[["node0",5000],["node2",5002],["node3",5003],["node4",5004]]
+    ports:
+      - "5001:5001"
+    networks:
+      - consensus_net
+
+  node2:
+    build: .
+    container_name: node2
+    environment:
+      - NODE_ID=2
+      - NODE_PORT=5002
+      - MODE=A
+      - PEERS=[["node0",5000],["node1",5001],["node3",5003],["node4",5004]]
+    ports:
+      - "5002:5002"
+    networks:
+      - consensus_net
+
+  node3:
+    build: .
+    container_name: node3
+    environment:
+      - NODE_ID=3
+      - NODE_PORT=5003
+      - MODE=A
+      - PEERS=[["node0",5000],["node1",5001],["node2",5002],["node4",5004]]
+    ports:
+      - "5003:5003"
+    networks:
+      - consensus_net
+
+  node4:
+    build: .
+    container_name: node4
+    environment:
+      - NODE_ID=4
+      - NODE_PORT=5004
+      - MODE=A
+      - PEERS=[["node0",5000],["node1",5001],["node2",5002],["node3",5003]]
+    ports:
+      - "5004:5004"
+    networks:
+      - consensus_net
+
+  adversary:
+    build: .
+    container_name: adversary
+    command: python src/adversary.py
+    environment:
+      - NODE_ID=5
+      - NODE_PORT=5005
+      - PEERS=[["node0",5000],["node1",5001],["node2",5002],["node3",5003],["node4",5004]]
+    ports:
+      - "5005:5005"
+    networks:
+      - consensus_net
+
+  client:
+    build: .
+    container_name: client
+    command: python src/client.py
+    environment:
+      - LEADER_HOST=node0
+      - LEADER_PORT=5000
+    depends_on:
+      - node0
+      - node1
+      - node2
+      - node3
+      - node4
+    networks:
+      - consensus_net
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.7.0
+    container_name: toxiproxy
+    ports:
+      - "8474:8474"
+      - "5102:5102"
+    networks:
+      - consensus_net
+
+networks:
+  consensus_net:
+    driver: bridge
